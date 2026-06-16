@@ -1,0 +1,2555 @@
+import React, { useState, useEffect } from 'react';
+
+
+ 
+
+// ==========================================
+
+// 1. DATA PRESETS (Derived from uploaded CSVs)
+
+// ==========================================
+
+
+ 
+
+const REGIONS = [
+
+  { province: "서울특별시", cities: ["강남구", "구로구", "마포구", "강서구", "서초구", "송파구"] },
+
+  { province: "경기도", cities: ["광명시", "수원시", "안산시", "평택시", "화성시", "성남시", "용인시", "김포시", "파주시"] },
+
+  { province: "인천광역시", cities: ["중구", "남동구", "서구", "부평구"] },
+
+  { province: "충청남도", cities: ["천안시", "아산시", "당진시", "공주시", "서산시"] },
+
+  { province: "충청북도", cities: ["청주시", "충주시", "진천군", "음성군"] },
+
+  { province: "경상북도", cities: ["구미시", "포항시", "경산시", "경주시"] },
+
+  { province: "경상남도", cities: ["창원시", "김해시", "양산시"] },
+
+  { province: "부산광역시", cities: ["강서구", "사상구", "중구"] },
+
+  { province: "대구광역시", cities: ["달서구", "북구"] },
+
+  { province: "광주광역시", cities: ["광산구", "북구"] },
+
+  { province: "전라북도", cities: ["전주시", "익산시", "군산시"] },
+
+  { province: "전라남도", cities: ["여수시", "순천시", "광양시"] },
+
+  { province: "강원도", cities: ["원주시", "강릉시", "춘천시"] }
+
+];
+
+
+ 
+
+// Incheon Airport Base Real Console (LTL) Rates (KRW) mapped by Province/City
+
+const CONSOLE_RATES = {
+
+  "서울특별시": { default: [40000, 45000, 50000, 55000, 60000, 75000, 95000] },
+
+  "경기도": {
+
+    "광명시": [35000, 40000, 45000, 50000, 55000, 70000, 90000],
+
+    "수원시": [45000, 50000, 55000, 60000, 65000, 85000, 110000],
+
+    "평택시": [55000, 60000, 65000, 70000, 75000, 95000, 125000],
+
+    "화성시": [50000, 55000, 60000, 65000, 70000, 90000, 120000],
+
+    default: [45000, 50000, 55000, 60000, 65000, 80000, 105000]
+
+  },
+
+  "인천광역시": {
+
+    "부평구": [30000, 35000, 40000, 45000, 50000, 65000, 80000],
+
+    default: [30000, 35000, 40000, 45000, 50000, 60000, 75000]
+
+  },
+
+  "충청남도": {
+
+    "당진시": [53000, 58000, 63000, 68000, 74000, 110000, 140000],
+
+    "천안시": [58000, 63000, 68000, 74000, 79000, 120000, 150000],
+
+    default: [65000, 70000, 75000, 80000, 85000, 130000, 160000]
+
+  },
+
+  "충청북도": {
+
+    "진천군": [68000, 74000, 79000, 84000, 90000, 135000, 165000],
+
+    default: [70000, 75000, 80000, 85000, 90000, 140000, 170000]
+
+  },
+
+  "경상북도": {
+
+    "구미시": [95000, 100000, 106000, 111000, 116000, 185000, 220000],
+
+    default: [100000, 105000, 111000, 116000, 121000, 190000, 230000]
+
+  },
+
+  "경상남도": {
+
+    "창원시": [116000, 121000, 127000, 132000, 137000, 200000, 250000],
+
+    default: [110000, 115000, 120000, 125000, 130000, 195000, 240000]
+
+  },
+
+  "부산광역시": { default: [120000, 125000, 130000, 135000, 140000, 210000, 260000] },
+
+  "대구광역시": { default: [95000, 100000, 105000, 110000, 115000, 180000, 220000] },
+
+  "광주광역시": { default: [100000, 105000, 110000, 115000, 120000, 185000, 225000] },
+
+  "전라북도": {
+
+    "전주시": [74000, 79000, 84000, 90000, 95000, 165000, 200000],
+
+    default: [80000, 85000, 90000, 95000, 100000, 170000, 210000]
+
+  },
+
+  "전라남도": { default: [115000, 120000, 125000, 130000, 135000, 210000, 260000] },
+
+  "강원도": {
+
+    "강릉시": [127000, 132000, 137000, 143000, 148000, 210000, 250000],
+
+    default: [120000, 125000, 130000, 135000, 140000, 200000, 240000]
+
+  }
+
+};
+
+
+ 
+
+// Incheon Airport Base Charter (FTL) Rates (KRW) [Damas, 1t, 2.5t, 3.5t, 5t, 11t]
+
+const CHARTER_RATES = {
+
+  "서울특별시": { default: [50000, 70000, 110000, 130000, 140000, 210000] },
+
+  "경기도": {
+
+    "광명시": [45000, 65000, 100000, 110000, 120000, 180000],
+
+    "수원시": [55000, 75000, 120000, 130000, 145000, 210000],
+
+    "평택시": [70000, 90000, 140000, 150000, 165000, 240000],
+
+    "화성시": [65000, 85000, 130000, 140000, 155000, 230000],
+
+    default: [60000, 80000, 125000, 135000, 150000, 220000]
+
+  },
+
+  "인천광역시": {
+
+    "부평구": [40000, 55000, 85000, 95000, 105000, 150000],
+
+    default: [35000, 50000, 80000, 90000, 100000, 145000]
+
+  },
+
+  "충청남도": {
+
+    "당진시": [85000, 110000, 170000, 185000, 200000, 280000],
+
+    "천안시": [95000, 120000, 180000, 195000, 210000, 290000],
+
+    default: [100000, 130000, 190000, 200000, 220000, 310000]
+
+  },
+
+  "충청북도": {
+
+    "진천군": [95000, 116000, 180000, 190000, 201000, 286000],
+
+    "청주시": [116000, 132000, 206000, 217000, 227000, 312000],
+
+    default: [105000, 125000, 195000, 205000, 215000, 300000]
+
+  },
+
+  "경상북도": {
+
+    "구미시": [160000, 190000, 280000, 300000, 320000, 430000],
+
+    default: [170000, 200000, 290000, 310000, 330000, 450000]
+
+  },
+
+  "경상남도": {
+
+    "창원시": [210000, 240000, 340000, 360000, 380000, 500000],
+
+    default: [200000, 230000, 330000, 350000, 370000, 480000]
+
+  },
+
+  "부산광역시": { default: [220000, 250000, 360000, 380000, 400000, 520000] },
+
+  "대구광역시": { default: [160000, 190000, 280000, 300000, 320000, 430000] },
+
+  "광주광역시": { default: [180000, 210000, 300000, 320000, 340000, 460000] },
+
+  "전라북도": {
+
+    "전주시": [130000, 150000, 230000, 245000, 260000, 360000],
+
+    default: [140000, 160000, 245000, 260000, 275000, 380000]
+
+  },
+
+  "전라남도": { default: [210000, 240000, 350000, 370000, 390000, 510000] },
+
+  "강원도": {
+
+    "강릉시": [222000, 243000, 296000, 307000, 318000, 371000],
+
+    default: [190000, 210000, 270000, 280000, 290000, 350000]
+
+  }
+
+};
+
+
+ 
+
+// Standard Incoterms Data (Incoterms 2020)
+
+const INCOTERMS_LIST = [
+
+  {
+
+    code: "EXW",
+
+    name: "Ex Works (공장인도조건)",
+
+    mode: "모든 운송 방식",
+
+    risk: "수출자의 작업장 (공장, 창고 등)",
+
+    costSeller: [],
+
+    costBuyer: ["수출국 내 운송", "수출통관", "수출지 선적지 비용", "국제 운송", "수입지 비용", "수입통관", "수입국 내 운송"],
+
+    desc: "수수료 및 모든 비용과 위험을 바이어가 부담하는 가장 단순한 조건입니다."
+
+  },
+
+  {
+
+    code: "FCA",
+
+    name: "Free Carrier (운송인인도조건)",
+
+    mode: "모든 운송 방식",
+
+    risk: "수출국 내 지정된 장소 (운송인에게 인도)",
+
+    costSeller: ["수출국 내 운송", "수출통관"],
+
+    costBuyer: ["수출지 선적지 비용", "국제 운송", "수입지 비용", "수입통관", "수입국 내 운송"],
+
+    desc: "수출자가 수출국 내 지정된 장소에서 바이어가 지정한 운송인에게 물품을 인도하며, 수출통관은 수출자가 수행합니다."
+
+  },
+
+  {
+
+    code: "FOB",
+
+    name: "Free On Board (본선인도조건)",
+
+    mode: "해상 및 내수로 운송",
+
+    risk: "선적항의 본선 상",
+
+    costSeller: ["수출국 내 운송", "수출통관", "수출지 선적지 비용"],
+
+    costBuyer: ["국제 운송", "수입지 비용", "수입통관", "수입국 내 운송"],
+
+    desc: "물품이 지정선적항에서 본선에 적재되었을 때 위험과 비용이 이전됩니다. 항공수입에서는 실질적으로 FCA 규정이 권장됩니다."
+
+  },
+
+  {
+
+    code: "CPT",
+
+    name: "Carriage Paid To (운송비지급조건)",
+
+    mode: "모든 운송 방식",
+
+    risk: "수출자가 첫 번째 운송인에게 인도할 때",
+
+    costSeller: ["수출국 내 운송", "수출통관", "수출지 선적지 비용", "국제 운송"],
+
+    costBuyer: ["수입지 비용", "수입통관", "수입국 내 운송"],
+
+    desc: "수출자가 목적지까지의 운송비를 지급하지만, 위험은 첫 번째 운송인에게 인도되는 시점에 바이어에게 이전됩니다."
+
+  },
+
+  {
+
+    code: "CIP",
+
+    name: "Carriage and Insurance Paid to (운송비·보험료지급조건)",
+
+    mode: "모든 운송 방식",
+
+    risk: "수출자가 첫 번째 운송인에게 인도할 때",
+
+    costSeller: ["수출국 내 운송", "수출통관", "수출지 선적지 비용", "국제 운송", "적하보험료"],
+
+    costBuyer: ["수입지 비용", "수입통관", "수입국 내 운송"],
+
+    desc: "CPT 조건에 수출자의 보험 가입 의무(최대부보조건인 ICC(A) 또는 All Risks 부보)가 추가된 조건입니다."
+
+  },
+
+  {
+
+    code: "DAP",
+
+    name: "Delivered At Place (목적지인도조건)",
+
+    mode: "모든 운송 방식",
+
+    risk: "지정목적지에서 운송수단으로부터 양하 준비된 상태",
+
+    costSeller: ["수출국 내 운송", "수출통관", "수출지 선적지 비용", "국제 운송", "수입지 비용", "수입국 내 운송"],
+
+    costBuyer: ["수입통관"],
+
+    desc: "수입통관 비용 및 관세를 제외한 모든 비용과 위험을 판매자가 부담하여 최종 수입국의 목적지까지 인도합니다."
+
+  },
+
+  {
+
+    code: "DPU",
+
+    name: "Delivered at Place Unloaded (도착지양하인도조건)",
+
+    mode: "모든 운송 방식",
+
+    risk: "지정목적지에서 양하된 상태",
+
+    costSeller: ["수출국 내 운송", "수출통관", "수출지 선적지 비용", "국제 운송", "수입지 비용", "수입국 내 운송", "양하 비용"],
+
+    costBuyer: ["수입통관"],
+
+    desc: "DAP 조건과 유사하나, 수출자가 목적지에서 직접 물품을 차량으로부터 하차(양하)까지 시켜서 인도하는 조건입니다."
+
+  },
+
+  {
+
+    code: "DDP",
+
+    name: "Delivered Duty Paid (관세지급인도조건)",
+
+    mode: "모든 운송 방식",
+
+    risk: "지정목적지에서 양하 준비된 상태",
+
+    costSeller: ["수출국 내 운송", "수출통관", "수출지 선적지 비용", "국제 운송", "수입지 비용", "수입통관", "수입국 내 운송"],
+
+    costBuyer: [],
+
+    desc: "수출자가 수입통관 및 관세/부가세까지 모두 해결하고 최종 수입국 목적지까지 배송하는 최대 의무 조건입니다."
+
+  }
+
+];
+
+
+ 
+
+// Game Questions / Scenarios
+
+const GAME_SCENARIOS = [
+
+  {
+
+    id: 1,
+
+    title: "독일에서 수입되는 긴급 의료 화물",
+
+    situation: "당사는 독일 프랑크푸르트의 제조사로부터 백신 원료를 항공으로 수입하려 합니다. 항공 운송 중 온도 유지가 매우 중요한 상황입니다. 공항 창고 입고 후 비행기가 이륙할 때까지는 판매자가 책임을 지고, 국제 항공운송과 수입지(인천공항) 통관 및 한국 국내 배송은 우리 바이어 측이 부담 및 컨트롤하고 싶습니다. 어떤 인코텀즈 조건이 가장 부합할까요?",
+
+    options: ["EXW", "FCA", "FOB", "DAP"],
+
+    correct: "FCA",
+
+    explanation: "항공 수입 시 선적지 인도 조건으로 가장 권장되는 조건은 FCA(프랑크푸르트 공항 등 지정장소)입니다. 흔히 FOB를 실무에서 쓰기도 하지만, 본선(Vessel) 적재 기준인 FOB는 해상 전용 조건이므로 항공 운송 시에는 항공사(운송인)에 물품이 인도될 때 위험이 이전되는 FCA가 가장 정확합니다."
+
+  },
+
+  {
+
+    id: 2,
+
+    title: "DAP 조건에서의 수입 관부가세 미납 사태",
+
+    situation: "미국 바이어에게 DAP 한국 공장 조건으로 고가 장비를 수입했습니다. 도착지 한국 세관에 화물이 반입되었는데, 수입 관부가세가 수천만 원이 나왔습니다. 미국 수출자는 '우리는 DAP 조건이므로 수입지 공장 앞마당까지 운송해 줄 책임만 있을 뿐, 관부가세 납부 의무는 없다'며 대금 납부를 거절하여 통관이 지연되고 있습니다. 수출자의 말이 맞을까요?",
+
+    options: ["수출자의 말이 맞다. DAP 조건은 바이어가 수입통관 및 세금을 내야 한다.", "수출자의 말이 틀리다. DAP는 수입지에 도달하는 조건이므로 수출자가 세금까지 내야 한다.", "반반씩 부담하는 것이 국제 관례이다.", "인코텀즈 2020에는 관부가세에 대한 규정이 없다."],
+
+    correct: "수출자의 말이 맞다. DAP 조건은 바이어가 수입통관 및 세금을 내야 한다.",
+
+    explanation: "DAP(Delivered At Place)는 수입 통관 의무가 매수인(수입자)에게 있습니다. 따라서 수입 관세 및 부가가치세는 전적으로 바이어가 내야 합니다. 만약 관세와 통관 비용까지 수출자가 내기를 원했다면 DDP 조건을 체결했어야 합니다."
+
+  },
+
+  {
+
+    id: 3,
+
+    title: "FOB 조건으로 선적된 화물의 해상 사고",
+
+    situation: "중국 상해항에서 FOB 상해 조건으로 기계 부품을 수입하기로 하고 선적을 진행했습니다. 그런데 선적이 완료되어 배가 상해항을 막 떠나던 중, 갑작스러운 파도로 컨테이너가 바다에 유실되었습니다. 이 화물의 파손 및 손실 위험은 누구에게 귀속될까요?",
+
+    options: ["수출자 (중국 판매자)", "수입자 (한국 바이어)", "선사 (운송회사)", "수출국 세관"],
+
+    correct: "수입자 (한국 바이어)",
+
+    explanation: "FOB 조건에서 위험 이전 시점은 '지정선적항에서 본선(On Board)에 적재되었을 때'입니다. 이미 선적이 완료되고 출항한 상태에서 발생한 유실 사고이므로 위험은 바이어(수입자)에게 귀속되며, 바이어가 본인의 적하보험을 통해 보상을 청구해야 합니다."
+
+  },
+
+  {
+
+    id: 4,
+
+    title: "보험 범위가 가장 넓은 인코텀즈는?",
+
+    situation: "수출자와 계약 시 운송 및 보험료를 모두 수출자가 내기로 합의하고자 합니다. 특히 당사의 제품은 정밀 유리 기구로 매우 취약하여 최대 담보 범위(All Risks / ICC(A))의 보험 가입이 필수적입니다. 인코텀즈 2020 개정 사항에 맞춰 어떤 조건으로 체결하는 것이 가장 안전할까요?",
+
+    options: ["CIF (Cost, Insurance and Freight)", "CIP (Carriage and Insurance Paid to)", "CPT (Carriage Paid To)", "DDP (Delivered Duty Paid)"],
+
+    correct: "CIP (Carriage and Insurance Paid to)",
+
+    explanation: "Incoterms 2020에서 CIP는 판매자가 최대 담보 조건인 ICC(A) 또는 All Risks 보험에 가입하도록 개정되었습니다. 반면 CIF는 구협회적하약관 중 담보 범위가 가장 좁은 ICC(C) 조건으로의 보험 가입만 강제하므로 정밀 기기 등 파손 우려가 큰 화물은 CIP가 가장 안전합니다."
+
+  },
+
+  {
+
+    id: 5,
+
+    title: "수입지 내륙 운송 중 차량 하차(양하) 도중 파손",
+
+    situation: "당사 공장에 화물이 특수 트럭으로 도착했습니다. 판매자와는 DPU(Delivered at Place Unloaded) 조건으로 계약을 체결했습니다. 공장 내 크레인을 사용하여 트럭에서 화물을 지상으로 양하하던 중 크레인 와이어가 끊어져 화물이 완파되었습니다. 이 위험의 책임은 누구에게 있을까요?",
+
+    options: ["수출자 (판매자)", "수입자 (구매자)", "크레인 대여 업체", "트럭 기사"],
+
+    correct: "수출자 (판매자)",
+
+    explanation: "DPU 조건은 인코텀즈 조건 중에서 유일하게 판매자(수출자)가 '도착지에서의 양하(Unloading)' 작업까지 완료하여 인도해야 하는 조건입니다. 양하 작업 완료 전 파손되었으므로 위험은 판매자(수출자)에게 있습니다. (DAP 조건이었다면 양하 책임이 구매자에게 있으므로 구매자 책임이 됩니다.)"
+
+  }
+
+];
+
+
+ 
+
+export default function App() {
+
+  const [activeTab, setActiveTab] = useState('game'); // game, calc, guide, lookup
+
+ 
+
+  // Game States
+
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+
+  const [isAnswered, setIsAnswered] = useState(false);
+
+  const [score, setScore] = useState(0);
+
+  const [showResult, setShowResult] = useState(false);
+
+
+ 
+
+  // Calculator States
+
+  const [incoterm, setIncoterm] = useState('EXW');
+
+  const [weight, setWeight] = useState(120); // kgs
+
+  const [cbm, setCbm] = useState(0.8); // CBM
+
+  const [valueUSD, setValueUSD] = useState(5000); // CIF or FOB Value in USD
+
+  const [dutyRate, setDutyRate] = useState(8); // %
+
+  const [exRate, setExRate] = useState(1350); // KRW/USD Exchange Rate
+
+ 
+
+  // Cargo/Transport Details
+
+  const [province, setProvince] = useState('경기도');
+
+  const [city, setCity] = useState('광명시');
+
+  const [truckType, setTruckType] = useState('Console'); // Console vs Charter
+
+  const [charterSize, setCharterSize] = useState('1톤'); // Damas, 1t, 2.5t, etc.
+
+ 
+
+  // Advanced Manual Overrides for Fluctuation Costs
+
+  const [airFreightUSD, setAirFreightUSD] = useState(450); // Optional manual input (User requested to exclude AF/FSC/SSC from auto, but we can give optional slot)
+
+  const [useAirFreight, setUseAirFreight] = useState(false);
+
+
+ 
+
+  // Computed Cost Breakdown State
+
+  const [costs, setCosts] = useState({
+
+    origin: {},
+
+    dest: {},
+
+    trucking: 0,
+
+    totalSeller: 0,
+
+    totalBuyer: 0
+
+  });
+
+
+ 
+
+  // Handle City Selection Sync
+
+  useEffect(() => {
+
+    const selectedProv = REGIONS.find(r => r.province === province);
+
+    if (selectedProv && !selectedProv.cities.includes(city)) {
+
+      setCity(selectedProv.cities[0] || '');
+
+    }
+
+  }, [province]);
+
+
+ 
+
+  // Main Calculator Logic
+
+  useEffect(() => {
+
+    const rateUsd = exRate;
+
+
+ 
+
+    // 1. Calculate Real Korean Trucking Cost (KRW to USD conversion)
+
+    let truckingKRW = 0;
+
+    if (truckType === 'Console') {
+
+      // Find weight bracket index: -100, -300, -500, -800, -1000, -1500, -2500
+
+      let wIdx = 0;
+
+      if (weight <= 100) wIdx = 0;
+
+      else if (weight <= 300) wIdx = 1;
+
+      else if (weight <= 500) wIdx = 2;
+
+      else if (weight <= 800) wIdx = 3;
+
+      else if (weight <= 1000) wIdx = 4;
+
+      else if (weight <= 1500) wIdx = 5;
+
+      else wIdx = 6;
+
+
+ 
+
+      const provRates = CONSOLE_RATES[province] || CONSOLE_RATES["경기도"];
+
+      const cityRate = provRates[city] || provRates.default || [50000, 60000, 70000, 80000, 90000, 150000, 200000];
+
+      truckingKRW = cityRate[wIdx];
+
+    } else {
+
+      // Charter: Damas, 1톤, 2.5톤, 3.5톤, 5톤, 11톤
+
+      const sizeMap = { "다마스": 0, "1톤": 1, "2.5톤": 2, "3.5톤": 3, "5톤": 4, "11톤": 5 };
+
+      const sIdx = sizeMap[charterSize] !== undefined ? sizeMap[charterSize] : 1;
+
+
+ 
+
+      const provRates = CHARTER_RATES[province] || CHARTER_RATES["경기도"];
+
+      const cityRate = provRates[city] || provRates.default || [60000, 80000, 120000, 130000, 150000, 220000];
+
+      truckingKRW = cityRate[sIdx];
+
+    }
+
+    const truckingUSD = truckingKRW / rateUsd;
+
+
+ 
+
+    // 2. Average Origin Costs (USD - standard logistics rates)
+
+    const exportClearance = 40; // Flat average
+
+    const originHandling = 70; // Handling
+
+    const originDocFee = 30; // Document Fee
+
+    const originWarehouse = 20 + (weight * 0.25); // THC / Warehouse based on FHD standard tariff
+
+   
+
+    const originTotal = exportClearance + originHandling + originDocFee + originWarehouse;
+
+
+ 
+
+    // 3. Average Destination Charges (USD - based on import FHD standard rates)
+
+    // Custom Clearance: CIF Value * 0.002, Min 40 USD
+
+    const customsClearanceFee = Math.max(40, valueUSD * 0.002);
+
+    const destDocFee = 30;
+
+    const destWarehouse = 20 + (weight * 0.25); // Terminal Handling + Storage estimate within 24h
+
+    const destHandling = 70;
+
+
+ 
+
+    // Tax calculation
+
+    const dutyUSD = valueUSD * (dutyRate / 100);
+
+    const vatUSD = (valueUSD + dutyUSD) * 0.10;
+
+    const dutyVatTotalUSD = dutyUSD + vatUSD;
+
+   
+
+    // Bank interest (from Nippon Express tariff)
+
+    let bankInterestKRW = 0;
+
+    const dutyVatKRW = dutyVatTotalUSD * rateUsd;
+
+    if (dutyVatKRW >= 1000000) {
+
+      let interestRate = 0.12;
+
+      if (dutyVatKRW >= 100000000) interestRate = 0.22;
+
+      else if (dutyVatKRW >= 50000000) interestRate = 0.20;
+
+      else if (dutyVatKRW >= 30000000) interestRate = 0.16;
+
+     
+
+      // Standard Formula: (Total Duty/Tax * rate) / 12 * 3 (approx 3 months interest lock)
+
+      bankInterestKRW = (dutyVatKRW * interestRate) / 12 * 3;
+
+    }
+
+    const bankInterestUSD = bankInterestKRW / rateUsd;
+
+
+ 
+
+    const destTotal = customsClearanceFee + destDocFee + destWarehouse + destHandling + dutyVatTotalUSD + bankInterestUSD;
+
+
+ 
+
+    // 4. Split Cost responsibility by Selected Incoterm
+
+    let sellerPart = 0;
+
+    let buyerPart = 0;
+
+
+ 
+
+    const currentInco = INCOTERMS_LIST.find(i => i.code === incoterm);
+
+   
+
+    // Evaluate Origin Charges
+
+    const originWhoPays = currentInco.costSeller.includes("수출통관") ? "Seller" : "Buyer";
+
+    // Evaluate Destination Charges
+
+    const destWhoPays = currentInco.costSeller.includes("수입지 비용") ? "Seller" : "Buyer";
+
+    // Evaluate Import duty/VAT
+
+    const taxWhoPays = currentInco.code === "DDP" ? "Seller" : "Buyer";
+
+    // Evaluate Domestic Trucking
+
+    const truckingWhoPays = currentInco.costSeller.includes("수입국 내 운송") ? "Seller" : "Buyer";
+
+
+ 
+
+    // Split computations
+
+    let oSeller = 0, oBuyer = 0;
+
+    if (originWhoPays === "Seller") oSeller += originTotal; else oBuyer += originTotal;
+
+
+ 
+
+    let dSeller = 0, dBuyer = 0;
+
+    // Customs Clearance & Bank Interest is bound to tax payer (DDP = Seller, else Buyer)
+
+    const clearancePart = customsClearanceFee + bankInterestUSD;
+
+    const pureDestPart = destDocFee + destWarehouse + destHandling;
+
+
+ 
+
+    if (destWhoPays === "Seller") {
+
+      dSeller += pureDestPart;
+
+    } else {
+
+      dBuyer += pureDestPart;
+
+    }
+
+
+ 
+
+    if (taxWhoPays === "Seller") {
+
+      dSeller += (clearancePart + dutyVatTotalUSD);
+
+    } else {
+
+      dBuyer += (clearancePart + dutyVatTotalUSD);
+
+    }
+
+
+ 
+
+    let tSeller = 0, tBuyer = 0;
+
+    if (truckingWhoPays === "Seller") tSeller += truckingUSD; else tBuyer += truckingUSD;
+
+
+ 
+
+    // Variable Air Freight (Optional)
+
+    let afSeller = 0, afBuyer = 0;
+
+    if (useAirFreight) {
+
+      const isSellerAirFreight = currentInco.costSeller.includes("국제 운송");
+
+      if (isSellerAirFreight) afSeller = airFreightUSD; else afBuyer = airFreightUSD;
+
+    }
+
+
+ 
+
+    const totalSeller = oSeller + dSeller + tSeller + afSeller;
+
+    const totalBuyer = oBuyer + dBuyer + tBuyer + afBuyer;
+
+
+ 
+
+    setCosts({
+
+      origin: {
+
+        clearance: exportClearance,
+
+        handling: originHandling,
+
+        doc: originDocFee,
+
+        warehouse: originWarehouse,
+
+        total: originTotal,
+
+        whoPays: originWhoPays
+
+      },
+
+      dest: {
+
+        clearance: customsClearanceFee,
+
+        doc: destDocFee,
+
+        warehouse: destWarehouse,
+
+        handling: destHandling,
+
+        dutyVat: dutyVatTotalUSD,
+
+        duty: dutyUSD,
+
+        vat: vatUSD,
+
+        interest: bankInterestUSD,
+
+        total: destTotal,
+
+        whoPays: destWhoPays,
+
+        taxPays: taxWhoPays
+
+      },
+
+      trucking: truckingUSD,
+
+      truckingKRW: truckingKRW,
+
+      truckingWhoPays,
+
+      totalSeller,
+
+      totalBuyer,
+
+      afSeller,
+
+      afBuyer
+
+    });
+
+
+ 
+
+  }, [incoterm, weight, cbm, valueUSD, dutyRate, province, city, truckType, charterSize, airFreightUSD, useAirFreight, exRate]);
+
+
+ 
+
+  // Game logic handler
+
+  const handleAnswer = (option) => {
+
+    setSelectedAnswer(option);
+
+    setIsAnswered(true);
+
+    if (option === GAME_SCENARIOS[currentQuestion].correct) {
+
+      setScore(score + 1);
+
+    }
+
+  };
+
+
+ 
+
+  const handleNext = () => {
+
+    setSelectedAnswer(null);
+
+    setIsAnswered(false);
+
+    if (currentQuestion < GAME_SCENARIOS.length - 1) {
+
+      setCurrentQuestion(currentQuestion + 1);
+
+    } else {
+
+      setShowResult(true);
+
+    }
+
+  };
+
+
+ 
+
+  const restartGame = () => {
+
+    setCurrentQuestion(0);
+
+    setSelectedAnswer(null);
+
+    setIsAnswered(false);
+
+    setScore(0);
+
+    setShowResult(false);
+
+  };
+
+
+ 
+
+  return (
+
+    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans flex flex-col antialiased">
+
+      {/* Header Banner */}
+
+      <header className="bg-slate-800 border-b border-slate-700 py-5 px-6 shadow-xl">
+
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+
+          <div className="flex items-center gap-3">
+
+            <div className="bg-blue-600 p-2.5 rounded-xl shadow-inner shadow-blue-400/40">
+
+              {/* Ship/Cargo Icon SVG */}
+
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l1.41-1.41m11.32-11.32l1.41-1.41" />
+
+              </svg>
+
+            </div>
+
+            <div>
+
+              <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+
+                인코텀즈 마스터 <span className="text-blue-400 text-sm font-semibold bg-blue-900/50 px-2 py-0.5 rounded border border-blue-700/50">Incoterms 2020</span>
+
+              </h1>
+
+              <p className="text-xs text-slate-400 mt-0.5">실무형 시나리오 게임 & 한국 국내 운임기반 스마트 계산기</p>
+
+            </div>
+
+          </div>
+
+
+ 
+
+          {/* Tab Controls */}
+
+          <nav className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-700">
+
+            <button
+
+              onClick={() => setActiveTab('game')}
+
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-150 ${activeTab === 'game' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+
+            >
+
+              🎮 실무 게임 챌린지
+
+            </button>
+
+            <button
+
+              onClick={() => setActiveTab('calc')}
+
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-150 ${activeTab === 'calc' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+
+            >
+
+              📊 짜잔! 비용 계산기
+
+            </button>
+
+            <button
+
+              onClick={() => setActiveTab('lookup')}
+
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-150 ${activeTab === 'lookup' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+
+            >
+
+              🚛 실운임 단가 조회
+
+            </button>
+
+            <button
+
+              onClick={() => setActiveTab('guide')}
+
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-150 ${activeTab === 'guide' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+
+            >
+
+              📚 인코텀즈 요약집
+
+            </button>
+
+          </nav>
+
+        </div>
+
+      </header>
+
+
+ 
+
+      {/* Main Content Body */}
+
+      <main className="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+
+       
+
+        {/* TAB 1: GAME CHALLENGE */}
+
+        {activeTab === 'game' && (
+
+          <div className="max-w-3xl mx-auto bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl p-6 md:p-8">
+
+            {!showResult ? (
+
+              <div>
+
+                {/* Progress bar */}
+
+                <div className="flex justify-between items-center mb-6">
+
+                  <span className="text-sm font-bold text-blue-400 uppercase tracking-widest">시나리오 {currentQuestion + 1} / {GAME_SCENARIOS.length}</span>
+
+                  <span className="text-xs bg-slate-700 text-slate-300 px-3 py-1 rounded-full">현재 점수: {score}점</span>
+
+                </div>
+
+                <div className="w-full bg-slate-900 h-2 rounded-full mb-8 overflow-hidden">
+
+                  <div
+
+                    className="bg-blue-500 h-full transition-all duration-300"
+
+                    style={{ width: `${((currentQuestion + 1) / GAME_SCENARIOS.length) * 100}%` }}
+
+                  />
+
+                </div>
+
+
+ 
+
+                {/* Scenario details */}
+
+                <div className="mb-6">
+
+                  <h3 className="text-xl font-bold text-white mb-3">{GAME_SCENARIOS[currentQuestion].title}</h3>
+
+                  <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-700/60 text-slate-300 leading-relaxed text-sm">
+
+                    {GAME_SCENARIOS[currentQuestion].situation}
+
+                  </div>
+
+                </div>
+
+
+ 
+
+                {/* Options list */}
+
+                <div className="space-y-3 mb-6">
+
+                  {GAME_SCENARIOS[currentQuestion].options.map((option, idx) => {
+
+                    let btnStyle = "bg-slate-700 border-slate-600 hover:bg-slate-650 hover:border-slate-500 text-slate-200";
+
+                    if (isAnswered) {
+
+                      if (option === GAME_SCENARIOS[currentQuestion].correct) {
+
+                        btnStyle = "bg-emerald-900/80 border-emerald-500 text-emerald-200 ring-2 ring-emerald-500/35";
+
+                      } else if (selectedAnswer === option) {
+
+                        btnStyle = "bg-rose-900/80 border-rose-500 text-rose-200 ring-2 ring-rose-500/35";
+
+                      } else {
+
+                        btnStyle = "bg-slate-850 border-slate-755 text-slate-500 opacity-60";
+
+                      }
+
+                    }
+
+                    return (
+
+                      <button
+
+                        key={idx}
+
+                        disabled={isAnswered}
+
+                        onClick={() => handleAnswer(option)}
+
+                        className={`w-full text-left p-4 rounded-xl border font-medium transition-all text-sm flex items-center justify-between ${btnStyle}`}
+
+                      >
+
+                        <span>{option}</span>
+
+                        {isAnswered && option === GAME_SCENARIOS[currentQuestion].correct && (
+
+                          <span className="text-emerald-400 font-bold">✔ 정답</span>
+
+                        )}
+
+                        {isAnswered && selectedAnswer === option && option !== GAME_SCENARIOS[currentQuestion].correct && (
+
+                          <span className="text-rose-400 font-bold">✘ 오답</span>
+
+                        )}
+
+                      </button>
+
+                    );
+
+                  })}
+
+                </div>
+
+
+ 
+
+                {/* Explanation text */}
+
+                {isAnswered && (
+
+                  <div className="p-5 bg-blue-950/60 border border-blue-800/40 rounded-xl mb-6">
+
+                    <h4 className="text-sm font-bold text-blue-300 mb-1">💡 실무 해설 및 핵심 팁</h4>
+
+                    <p className="text-xs text-slate-300 leading-relaxed">{GAME_SCENARIOS[currentQuestion].explanation}</p>
+
+                  </div>
+
+                )}
+
+
+ 
+
+                {/* Action button */}
+
+                {isAnswered && (
+
+                  <button
+
+                    onClick={handleNext}
+
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+
+                  >
+
+                    {currentQuestion === GAME_SCENARIOS.length - 1 ? "게임 결과 보기" : "다음 시나리오 이동"}
+
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+
+                  </button>
+
+                )}
+
+              </div>
+
+            ) : (
+
+              /* Game finished screen */
+
+              <div className="text-center py-8">
+
+                <div className="inline-flex p-4 bg-blue-900/30 rounded-full mb-4 text-blue-400">
+
+                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+
+                  </svg>
+
+                </div>
+
+                <h3 className="text-3xl font-bold text-white mb-2">테스트가 모두 끝났습니다!</h3>
+
+                <p className="text-slate-400 mb-6">귀하의 인코텀즈 2020 실무 역량 스코어</p>
+
+               
+
+                <div className="bg-slate-900 rounded-2xl p-6 max-w-sm mx-auto mb-8 border border-slate-700/60">
+
+                  <span className="text-6xl font-black text-blue-400">{score * 20}</span>
+
+                  <span className="text-2xl text-slate-400 font-bold"> / 100점</span>
+
+                  <div className="mt-3 text-sm font-semibold text-slate-300">
+
+                    {score === GAME_SCENARIOS.length ? "🎖️ 무역의 신! 실무 마스터 수준" : score >= 3 ? "👍 우수한 실무 지식을 갖추고 있습니다!" : "💡 오답 노트를 보며 실무 역량을 다져보세요."}
+
+                  </div>
+
+                </div>
+
+
+ 
+
+                <button
+
+                  onClick={restartGame}
+
+                  className="bg-slate-700 hover:bg-slate-650 text-white font-bold py-3 px-8 rounded-xl transition duration-150 inline-flex items-center gap-2 border border-slate-600"
+
+                >
+
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/></svg>
+
+                  다시 도전하기
+
+                </button>
+
+              </div>
+
+            )}
+
+          </div>
+
+        )}
+
+
+ 
+
+        {/* TAB 2: SMART COST CALCULATOR */}
+
+        {activeTab === 'calc' && (
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+           
+
+            {/* Input form - Left column */}
+
+            <div className="lg:col-span-5 space-y-6">
+
+             
+
+              {/* Cargo & Incoterms Selection */}
+
+              <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5 shadow-lg">
+
+                <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 1. 기본 화물 조건 및 거래조건 설정
+
+                </h3>
+
+
+ 
+
+                {/* Incoterms Code Buttons Grid */}
+
+                <div className="mb-4">
+
+                  <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wide">인코텀즈 거래조건 (Incoterm)</label>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+
+                    {INCOTERMS_LIST.map(inco => (
+
+                      <button
+
+                        key={inco.code}
+
+                        onClick={() => setIncoterm(inco.code)}
+
+                        className={`py-2 px-1 text-xs font-black rounded-lg transition border ${incoterm === inco.code ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-900 border-slate-750 text-slate-400 hover:bg-slate-850'}`}
+
+                      >
+
+                        {inco.code}
+
+                      </button>
+
+                    ))}
+
+                  </div>
+
+                </div>
+
+
+ 
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+
+                  <div>
+
+                    <label className="block text-xs font-bold text-slate-400 mb-1">화물 총중량 (Gross Weight)</label>
+
+                    <div className="relative">
+
+                      <input
+
+                        type="number"
+
+                        value={weight}
+
+                        onChange={(e) => setWeight(Math.max(1, Number(e.target.value)))}
+
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+
+                      />
+
+                      <span className="absolute right-3 top-2 text-xs font-bold text-slate-500">kg</span>
+
+                    </div>
+
+                  </div>
+
+                  <div>
+
+                    <label className="block text-xs font-bold text-slate-400 mb-1">화물 부피 (Volume)</label>
+
+                    <div className="relative">
+
+                      <input
+
+                        type="number"
+
+                        step="0.1"
+
+                        value={cbm}
+
+                        onChange={(e) => setCbm(Math.max(0.1, Number(e.target.value)))}
+
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+
+                      />
+
+                      <span className="absolute right-3 top-2 text-xs font-bold text-slate-500">CBM</span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+ 
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+
+                  <div>
+
+                    <label className="block text-xs font-bold text-slate-400 mb-1">수입품 가격 (FOB/CIF 가액)</label>
+
+                    <div className="relative">
+
+                      <input
+
+                        type="number"
+
+                        value={valueUSD}
+
+                        onChange={(e) => setValueUSD(Math.max(0, Number(e.target.value)))}
+
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+
+                      />
+
+                      <span className="absolute right-3 top-2 text-xs font-bold text-slate-500">USD</span>
+
+                    </div>
+
+                  </div>
+
+                  <div>
+
+                    <label className="block text-xs font-bold text-slate-400 mb-1">관세율 (Duty Rate)</label>
+
+                    <div className="relative">
+
+                      <input
+
+                        type="number"
+
+                        step="0.5"
+
+                        value={dutyRate}
+
+                        onChange={(e) => setDutyRate(Math.max(0, Number(e.target.value)))}
+
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+
+                      />
+
+                      <span className="absolute right-3 top-2 text-xs font-bold text-slate-500">%</span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+ 
+
+                <div className="grid grid-cols-2 gap-3">
+
+                  <div>
+
+                    <label className="block text-xs font-bold text-slate-400 mb-1">적용 환율 (Ex. Rate)</label>
+
+                    <div className="relative">
+
+                      <input
+
+                        type="number"
+
+                        value={exRate}
+
+                        onChange={(e) => setExRate(Math.max(1, Number(e.target.value)))}
+
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+
+                      />
+
+                      <span className="absolute right-3 top-2 text-xs font-bold text-slate-500">원/$</span>
+
+                    </div>
+
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+
+                    <span className="text-slate-500 text-xxs leading-snug">수입지 세관 및 은행 납부 비용 산출 시 자동 변환 계산됩니다.</span>
+
+                  </div>
+
+                </div>
+
+
+ 
+
+              </div>
+
+
+ 
+
+              {/* Korean Trucking Cost Preset Selection */}
+
+              <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5 shadow-lg">
+
+                <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 2. 국내 수송 및 트럭킹 단가 결정
+
+                </h3>
+
+
+ 
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+
+                  <div>
+
+                    <label className="block text-xs font-bold text-slate-400 mb-1">수신 도/특별시 (Province)</label>
+
+                    <select
+
+                      value={province}
+
+                      onChange={(e) => setProvince(e.target.value)}
+
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+
+                    >
+
+                      {REGIONS.map(r => (
+
+                        <option key={r.province} value={r.province}>{r.province}</option>
+
+                      ))}
+
+                    </select>
+
+                  </div>
+
+                  <div>
+
+                    <label className="block text-xs font-bold text-slate-400 mb-1">도착 구/시/군 (City)</label>
+
+                    <select
+
+                      value={city}
+
+                      onChange={(e) => setCity(e.target.value)}
+
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+
+                    >
+
+                      {(REGIONS.find(r => r.province === province)?.cities || []).map(c => (
+
+                        <option key={c} value={c}>{c}</option>
+
+                      ))}
+
+                    </select>
+
+                  </div>
+
+                </div>
+
+
+ 
+
+                {/* Truck Mode Toggle */}
+
+                <div className="mb-4">
+
+                  <label className="block text-xs font-bold text-slate-400 mb-2">운송 방식 (Transport Mode)</label>
+
+                  <div className="grid grid-cols-2 gap-2">
+
+                    <button
+
+                      onClick={() => setTruckType('Console')}
+
+                      className={`py-2 px-3 text-xs font-bold rounded-xl border transition ${truckType === 'Console' ? 'bg-blue-600/20 border-blue-500 text-blue-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-850'}`}
+
+                    >
+
+                      혼적 (Console LTL)
+
+                    </button>
+
+                    <button
+
+                      onClick={() => setTruckType('Charter')}
+
+                      className={`py-2 px-3 text-xs font-bold rounded-xl border transition ${truckType === 'Charter' ? 'bg-blue-600/20 border-blue-500 text-blue-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-850'}`}
+
+                    >
+
+                      독차 (Charter FTL)
+
+                    </button>
+
+                  </div>
+
+                </div>
+
+
+ 
+
+                {/* Charter Size (Only visible when Charter) */}
+
+                {truckType === 'Charter' && (
+
+                  <div className="mb-4">
+
+                    <label className="block text-xs font-bold text-slate-400 mb-2">차량 차종 선택</label>
+
+                    <div className="grid grid-cols-3 gap-1.5">
+
+                      {["다마스", "1톤", "2.5톤", "3.5톤", "5톤", "11톤"].map(size => (
+
+                        <button
+
+                          key={size}
+
+                          onClick={() => setCharterSize(size)}
+
+                          className={`py-1.5 px-1 text-xs rounded-lg border font-semibold transition ${charterSize === size ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 border-slate-750 text-slate-400 hover:bg-slate-850'}`}
+
+                        >
+
+                          {size}
+
+                        </button>
+
+                      ))}
+
+                    </div>
+
+                  </div>
+
+                )}
+
+
+ 
+
+                {/* Selected Trucking Rate Result Preview */}
+
+                <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-750 flex items-center justify-between">
+
+                  <div>
+
+                    <span className="text-xxs text-slate-500 block uppercase tracking-wider font-semibold">인천공항기점 확정 수송료</span>
+
+                    <span className="text-sm font-bold text-slate-200">
+
+                      {province} {city} ({truckType === 'Console' ? 'Console 혼적' : `${charterSize} 독차`})
+
+                    </span>
+
+                  </div>
+
+                  <div className="text-right">
+
+                    <span className="text-lg font-black text-emerald-400">
+
+                      {costs.truckingKRW?.toLocaleString()}원
+
+                    </span>
+
+                    <span className="text-xxs text-slate-500 block">≈ ${costs.trucking?.toFixed(1)} USD</span>
+
+                  </div>
+
+                </div>
+
+
+ 
+
+              </div>
+
+
+ 
+
+              {/* Air Freight Toggle Option (Excluded from auto but manual insert allowed) */}
+
+              <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5 shadow-lg">
+
+                <div className="flex items-center justify-between mb-3">
+
+                  <div className="flex items-center gap-2">
+
+                    <input
+
+                      type="checkbox"
+
+                      id="useAF"
+
+                      checked={useAirFreight}
+
+                      onChange={(e) => setUseAirFreight(e.target.checked)}
+
+                      className="rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 w-4 h-4"
+
+                    />
+
+                    <label htmlFor="useAF" className="text-sm font-bold text-white cursor-pointer select-none">항공 운임 추가 시뮬레이션 (A/F)</label>
+
+                  </div>
+
+                  <span className="text-xxs text-rose-400 font-bold bg-rose-950/40 px-2 py-0.5 rounded border border-rose-900/50">옵션</span>
+
+                </div>
+
+               
+
+                {useAirFreight && (
+
+                  <div>
+
+                    <div className="relative">
+
+                      <input
+
+                        type="number"
+
+                        value={airFreightUSD}
+
+                        onChange={(e) => setAirFreightUSD(Math.max(0, Number(e.target.value)))}
+
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+
+                        placeholder="순수 변동 항공 운임을 입력하세요"
+
+                      />
+
+                      <span className="absolute right-3 top-2 text-xs font-bold text-slate-500">USD</span>
+
+                    </div>
+
+                    <span className="text-xxs text-slate-500 block mt-1 leading-snug">
+
+                      FSC, SSC 등 유류/보안 할증료는 변동폭이 커 기본 제외되었으므로, 해당 합산 운임을 가입력하여 거래조건에 포함해보실 수 있습니다.
+
+                    </span>
+
+                  </div>
+
+                )}
+
+              </div>
+
+
+ 
+
+            </div>
+
+
+ 
+
+            {/* Output Panel - Right column */}
+
+            <div className="lg:col-span-7 space-y-6">
+
+             
+
+              {/* Active Incoterm Responsibility Meter/Map */}
+
+              <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-lg">
+
+                <div className="flex justify-between items-start mb-4">
+
+                  <div>
+
+                    <span className="text-xs font-black text-blue-400 block uppercase tracking-widest">위험 & 비용 이전 모델</span>
+
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2 mt-0.5">
+
+                      {INCOTERMS_LIST.find(i => i.code === incoterm)?.name}
+
+                    </h3>
+
+                  </div>
+
+                  <span className="text-xs bg-slate-900 text-slate-300 font-semibold py-1 px-3 rounded-full">
+
+                    {INCOTERMS_LIST.find(i => i.code === incoterm)?.mode}
+
+                  </span>
+
+                </div>
+
+
+ 
+
+                <p className="text-xs text-slate-400 leading-relaxed mb-6">
+
+                  {INCOTERMS_LIST.find(i => i.code === incoterm)?.desc}
+
+                </p>
+
+
+ 
+
+                {/* Graphic Visual Representation of the Chain */}
+
+                <div className="space-y-2">
+
+                  <div className="flex justify-between text-xxs font-bold uppercase tracking-wider text-slate-500 px-1">
+
+                    <span>수출국 공장 (Origin)</span>
+
+                    <span>국제 수송 (Transit)</span>
+
+                    <span>수입통관 및 내륙수송 (Destination)</span>
+
+                  </div>
+
+                 
+
+                  {/* Visual Bar dividing responsibility */}
+
+                  <div className="relative h-6 rounded-lg overflow-hidden flex bg-slate-950 p-0.5 border border-slate-700">
+
+                    {/* Seller Bar */}
+
+                    <div
+
+                      className="bg-gradient-to-r from-blue-700 to-blue-500 h-full flex items-center justify-center transition-all duration-300 relative group"
+
+                      style={{ width: `${(INCOTERMS_LIST.find(i => i.code === incoterm).costSeller.length / 7) * 100}%` }}
+
+                    >
+
+                      {INCOTERMS_LIST.find(i => i.code === incoterm).costSeller.length > 0 && (
+
+                        <span className="text-xxs font-black text-white truncate px-1">수출자 (Seller) 부담</span>
+
+                      )}
+
+                    </div>
+
+                    {/* Buyer Bar */}
+
+                    <div
+
+                      className="bg-gradient-to-r from-orange-600 to-orange-500 h-full flex items-center justify-center transition-all duration-300"
+
+                      style={{ width: `${(INCOTERMS_LIST.find(i => i.code === incoterm).costBuyer.length / 7) * 100}%` }}
+
+                    >
+
+                      {INCOTERMS_LIST.find(i => i.code === incoterm).costBuyer.length > 0 && (
+
+                        <span className="text-xxs font-black text-white truncate px-1">수입자 (Buyer) 부담</span>
+
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+ 
+
+                {/* Legend */}
+
+                <div className="flex justify-center gap-6 mt-4 text-xs font-bold">
+
+                  <div className="flex items-center gap-2">
+
+                    <span className="w-3 h-3 bg-blue-500 rounded-sm"></span>
+
+                    <span className="text-slate-300">수출자 부담 영역</span>
+
+                  </div>
+
+                  <div className="flex items-center gap-2">
+
+                    <span className="w-3 h-3 bg-orange-500 rounded-sm"></span>
+
+                    <span className="text-slate-300">수입자 부담 영역</span>
+
+                  </div>
+
+                </div>
+
+
+ 
+
+              </div>
+
+
+ 
+
+              {/* Cost Split Summary Boxes */}
+
+              <div className="grid grid-cols-2 gap-4">
+
+                {/* Total Seller Cost Box */}
+
+                <div className="bg-slate-800 rounded-2xl border-l-4 border-l-blue-500 border-t border-r border-b border-slate-700 p-5 shadow-lg">
+
+                  <span className="text-xxs font-bold text-slate-400 block uppercase tracking-wider">수출자 최종 부담액 (Seller Total)</span>
+
+                  <div className="mt-1">
+
+                    <span className="text-2xl font-black text-blue-400">
+
+                      ${costs.totalSeller?.toFixed(2)}
+
+                    </span>
+
+                    <span className="text-xs text-slate-500 font-semibold block">
+
+                      ≈ {(costs.totalSeller * exRate)?.toLocaleString(undefined, {maximumFractionDigits:0})}원
+
+                    </span>
+
+                  </div>
+
+                  <p className="text-xxs text-slate-400 leading-snug mt-2">수출지 내륙비 및 수출통관 등 지정 범위 내 모든 원가 합산</p>
+
+                </div>
+
+
+ 
+
+                {/* Total Buyer Cost Box */}
+
+                <div className="bg-slate-800 rounded-2xl border-l-4 border-l-orange-500 border-t border-r border-b border-slate-700 p-5 shadow-lg">
+
+                  <span className="text-xxs font-bold text-slate-400 block uppercase tracking-wider">수입자 최종 부담액 (Buyer Total)</span>
+
+                  <div className="mt-1">
+
+                    <span className="text-2xl font-black text-orange-400">
+
+                      ${costs.totalBuyer?.toFixed(2)}
+
+                    </span>
+
+                    <span className="text-xs text-slate-500 font-semibold block">
+
+                      ≈ {(costs.totalBuyer * exRate)?.toLocaleString(undefined, {maximumFractionDigits:0})}원
+
+                    </span>
+
+                  </div>
+
+                  <p className="text-xxs text-slate-400 leading-snug mt-2">수입지 보세 창고료, 세금, 핸들링 수수료 및 수입국 최종 수송료</p>
+
+                </div>
+
+              </div>
+
+
+ 
+
+              {/* Cost Breakdown Details */}
+
+              <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-lg overflow-hidden">
+
+                <div className="bg-slate-750 px-5 py-4 border-b border-slate-700 flex justify-between items-center">
+
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+
+                    세부 비용 영수증 (Breakdown)
+
+                  </h4>
+
+                  <span className="text-xxs font-semibold bg-slate-900 text-slate-400 px-2 py-0.5 rounded">USD 기준</span>
+
+                </div>
+
+
+ 
+
+                <div className="divide-y divide-slate-700/60">
+
+                 
+
+                  {/* Origin Charges */}
+
+                  <div className="p-4">
+
+                    <div className="flex justify-between items-center mb-2">
+
+                      <span className="text-xs font-bold text-white flex items-center gap-1">
+
+                        📦 수출지 비용 (Origin Charges Preset)
+
+                      </span>
+
+                      <span className={`text-xxs font-black px-2 py-0.5 rounded border ${costs.origin.whoPays === 'Seller' ? 'bg-blue-950/60 text-blue-400 border-blue-900' : 'bg-orange-950/60 text-orange-400 border-orange-900'}`}>
+
+                        {costs.origin.whoPays === 'Seller' ? '수출자 부담' : '수입자 부담'}
+
+                      </span>
+
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 pl-4 text-xxs text-slate-400">
+
+                      <div className="flex justify-between">
+
+                        <span>수출통관 수수료 (Export Clearance)</span>
+
+                        <span className="font-semibold text-slate-300">${costs.origin.clearance}</span>
+
+                      </div>
+
+                      <div className="flex justify-between">
+
+                        <span>포워딩 핸들링 비용 (Handling)</span>
+
+                        <span className="font-semibold text-slate-300">${costs.origin.handling}</span>
+
+                      </div>
+
+                      <div className="flex justify-between">
+
+                        <span>수출 도큐먼트 비용 (Doc Fee)</span>
+
+                        <span className="font-semibold text-slate-300">${costs.origin.doc}</span>
+
+                      </div>
+
+                      <div className="flex justify-between">
+
+                        <span>공항 반입 창고 보관료 / THC</span>
+
+                        <span className="font-semibold text-slate-300">${costs.origin.warehouse?.toFixed(1)}</span>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+
+ 
+
+                  {/* Transit Air Freight */}
+
+                  {useAirFreight && (
+
+                    <div className="p-4 bg-slate-850/30">
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="text-xs font-bold text-white flex items-center gap-1">
+
+                          ✈️ 국제 항공 운임 (Air Freight)
+
+                        </span>
+
+                        <span className="font-bold text-sm text-slate-200">${airFreightUSD}</span>
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+
+ 
+
+                  {/* Destination Import Charges */}
+
+                  <div className="p-4">
+
+                    <div className="flex justify-between items-center mb-2">
+
+                      <span className="text-xs font-bold text-white flex items-center gap-1">
+
+                        🏢 수입지 부대비용 및 세금 (Destination Charges)
+
+                      </span>
+
+                      <span className={`text-xxs font-black px-2 py-0.5 rounded border ${costs.dest.whoPays === 'Seller' ? 'bg-blue-950/60 text-blue-400 border-blue-900' : 'bg-orange-950/60 text-orange-400 border-orange-900'}`}>
+
+                        {costs.dest.whoPays === 'Seller' ? '수출자 부담' : '수입자 부담'}
+
+                      </span>
+
+                    </div>
+
+                   
+
+                    {/* Basic Import Handling fees */}
+
+                    <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 pl-4 text-xxs text-slate-400 mb-2">
+
+                      <div className="flex justify-between">
+
+                        <span>수입 도큐먼트 비용 (Doc Fee)</span>
+
+                        <span className="font-semibold text-slate-300">${costs.dest.doc}</span>
+
+                      </div>
+
+                      <div className="flex justify-between">
+
+                        <span>보세창고 입고료 및 조기 THC</span>
+
+                        <span className="font-semibold text-slate-300">${costs.dest.warehouse?.toFixed(1)}</span>
+
+                      </div>
+
+                      <div className="flex justify-between">
+
+                        <span>Import Handling Charge</span>
+
+                        <span className="font-semibold text-slate-300">${costs.dest.handling}</span>
+
+                      </div>
+
+                    </div>
+
+
+ 
+
+                    {/* Tax & Bank interest - separate payer line because DDP specifically covers this */}
+
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-750 text-xxs text-slate-400 space-y-1.5">
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="font-semibold text-slate-300">수입 관·부가세 (Customs Duty & VAT)</span>
+
+                        <span className={`font-black uppercase tracking-wide px-1.5 py-0.2 rounded ${costs.dest.taxPays === 'Seller' ? 'bg-blue-950 text-blue-400' : 'bg-orange-950 text-orange-400'}`}>
+
+                          {costs.dest.taxPays === 'Seller' ? '수출자 납부' : '수입자 납부'}
+
+                        </span>
+
+                      </div>
+
+                      <div className="pl-2 space-y-1">
+
+                        <div className="flex justify-between">
+
+                          <span>수입관세 ({dutyRate}%)</span>
+
+                          <span>${costs.dest.duty?.toFixed(2)}</span>
+
+                        </div>
+
+                        <div className="flex justify-between">
+
+                          <span>부가가치세 (10%)</span>
+
+                          <span>${costs.dest.vat?.toFixed(2)}</span>
+
+                        </div>
+
+                        <div className="flex justify-between border-t border-slate-800 pt-1 text-slate-300 font-bold">
+
+                          <span>관세 수입 대행사 통관 수수료 (CIF * 0.2%, Min 40)</span>
+
+                          <span>${costs.dest.clearance?.toFixed(1)}</span>
+
+                        </div>
+
+                        <div className="flex justify-between text-slate-300 font-bold">
+
+                          <span>세금 납부 은행 수수료 및 대행 이자</span>
+
+                          <span>${costs.dest.interest?.toFixed(2)}</span>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+
+ 
+
+                  </div>
+
+
+ 
+
+                  {/* Domestic Trucking */}
+
+                  <div className="p-4 bg-slate-900/45">
+
+                    <div className="flex justify-between items-center">
+
+                      <span className="text-xs font-bold text-white flex items-center gap-1">
+
+                        🚛 한국 인천공항 기점 최종 트럭킹 배송비 (Korea Local Trucking)
+
+                      </span>
+
+                      <span className={`text-xxs font-black px-2 py-0.5 rounded border ${costs.truckingWhoPays === 'Seller' ? 'bg-blue-950/60 text-blue-400 border-blue-900' : 'bg-orange-950/60 text-orange-400 border-orange-900'}`}>
+
+                        {costs.truckingWhoPays === 'Seller' ? '수출자 부담' : '수입자 부담'}
+
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between items-center pl-4 mt-2">
+
+                      <span className="text-xxs text-slate-400">{province} {city} 목적지 요율표 일치 배차</span>
+
+                      <span className="text-xs font-black text-slate-200">
+
+                        ${costs.trucking?.toFixed(2)} (${costs.truckingKRW?.toLocaleString()}원)
+
+                      </span>
+
+                    </div>
+
+                  </div>
+
+
+ 
+
+                </div>
+
+              </div>
+
+
+ 
+
+            </div>
+
+
+ 
+
+          </div>
+
+        )}
+
+
+ 
+
+        {/* TAB 3: TRUCKING TARIFF LOOKUP */}
+
+        {activeTab === 'lookup' && (
+
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl p-6">
+
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-slate-700 pb-4">
+
+              <div>
+
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+
+                  🚛 2025-2026년 국내 로컬 운송 단가 요율표
+
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">인천공항 수입 보세운송 및 일반화물 적용단가 수록 (VAT 별도)</p>
+
+              </div>
+
+              <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
+
+                <button
+
+                  onClick={() => setTruckType('Console')}
+
+                  className={`py-1.5 px-4 text-xs font-bold rounded-md transition ${truckType === 'Console' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+
+                >
+
+                  콘솔 (혼적 LTL) 요율표
+
+                </button>
+
+                <button
+
+                  onClick={() => setTruckType('Charter')}
+
+                  className={`py-1.5 px-4 text-xs font-bold rounded-md transition ${truckType === 'Charter' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+
+                >
+
+                  독차 (전세기 FTL) 요율표
+
+                </button>
+
+              </div>
+
+            </div>
+
+
+ 
+
+            {/* Custom Interactive Table View */}
+
+            <div className="overflow-x-auto max-h-[500px] rounded-xl border border-slate-750 shadow-inner">
+
+              <table className="w-full text-left border-collapse">
+
+                <thead className="bg-slate-900 text-slate-400 text-xs uppercase tracking-wider sticky top-0">
+
+                  {truckType === 'Console' ? (
+
+                    <tr>
+
+                      <th className="p-3">도착 도/광역시</th>
+
+                      <th className="p-3">대표 도시</th>
+
+                      <th className="p-3">-100kg</th>
+
+                      <th className="p-3">-300kg</th>
+
+                      <th className="p-3">-500kg</th>
+
+                      <th className="p-3">-800kg</th>
+
+                      <th className="p-3">-1000kg</th>
+
+                      <th className="p-3">-1500kg</th>
+
+                      <th className="p-3">-2500kg</th>
+
+                    </tr>
+
+                  ) : (
+
+                    <tr>
+
+                      <th className="p-3">도착 도/광역시</th>
+
+                      <th className="p-3">대표 도시</th>
+
+                      <th className="p-3">다마스</th>
+
+                      <th className="p-3">1톤</th>
+
+                      <th className="p-3">2.5톤</th>
+
+                      <th className="p-3">3.5톤</th>
+
+                      <th className="p-3">5톤</th>
+
+                      <th className="p-3">11톤</th>
+
+                    </tr>
+
+                  )}
+
+                </thead>
+
+                <tbody className="text-xs text-slate-300 divide-y divide-slate-750">
+
+                  {REGIONS.map((reg) => {
+
+                    // Collect first representative cities
+
+                    const ratesSource = truckType === 'Console' ? CONSOLE_RATES : CHARTER_RATES;
+
+                    const provRates = ratesSource[reg.province] || {};
+
+                   
+
+                    return reg.cities.map((ct, idx) => {
+
+                      const rates = provRates[ct] || provRates.default || [0, 0, 0, 0, 0, 0, 0];
+
+                      return (
+
+                        <tr
+
+                          key={`${reg.province}-${ct}`}
+
+                          className="hover:bg-slate-750 transition duration-100"
+
+                        >
+
+                          {idx === 0 ? (
+
+                            <td
+
+                              className="p-3 font-bold bg-slate-900/40 text-slate-200 align-middle"
+
+                              rowSpan={reg.cities.length}
+
+                            >
+
+                              {reg.province}
+
+                            </td>
+
+                          ) : null}
+
+                          <td className="p-3 font-semibold text-slate-400">{ct}</td>
+
+                          {rates.slice(0, truckType === 'Console' ? 7 : 6).map((rate, rIdx) => (
+
+                            <td key={rIdx} className="p-3 text-slate-300">
+
+                              {rate?.toLocaleString()}원
+
+                            </td>
+
+                          ))}
+
+                        </tr>
+
+                      );
+
+                    });
+
+                  })}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+
+ 
+
+            <div className="mt-4 p-4 bg-slate-900/60 rounded-xl border border-slate-750 flex flex-col md:flex-row justify-between text-xxs text-slate-400 gap-2">
+
+              <span className="font-medium leading-relaxed">
+
+                📢 리프트 차량 옵션, 조기 출고료(개청료), 대기 및 회차 비용은 특수 작업으로 분류되어 기본 청구서에 가산됩니다. (대기료 1시간 대기 후 시간당 2만~3만원 부과 기준)
+
+              </span>
+
+              <span className="font-bold text-slate-300">Nippon Express Korea Import Team 협력 TARIFF 기준 수록</span>
+
+            </div>
+
+
+ 
+
+          </div>
+
+        )}
+
+
+ 
+
+        {/* TAB 4: INCOTERMS REFERENCE GUIDE */}
+
+        {activeTab === 'guide' && (
+
+          <div className="space-y-6">
+
+           
+
+            {/* Quick Summary Grid */}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+              {INCOTERMS_LIST.map((inco) => (
+
+                <div key={inco.code} className="bg-slate-800 rounded-2xl border border-slate-700 shadow-xl overflow-hidden flex flex-col justify-between">
+
+                  <div className="p-5">
+
+                    <div className="flex justify-between items-center mb-3">
+
+                      <span className="text-2xl font-black text-blue-400 tracking-tight">{inco.code}</span>
+
+                      <span className="text-xxs bg-slate-900 text-slate-400 font-bold px-2 py-0.5 rounded">{inco.mode}</span>
+
+                    </div>
+
+                    <h4 className="text-sm font-bold text-white mb-2">{inco.name}</h4>
+
+                    <p className="text-xxs text-slate-400 leading-relaxed mb-4">{inco.desc}</p>
+
+                   
+
+                    <div className="space-y-1 bg-slate-900 p-3 rounded-xl border border-slate-750 text-xxs">
+
+                      <div className="flex justify-between">
+
+                        <span className="text-slate-500">위험 이전지점:</span>
+
+                        <span className="text-slate-300 font-semibold text-right max-w-[150px] truncate">{inco.risk}</span>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                 
+
+                  {/* Payer Summary Bar */}
+
+                  <div className="bg-slate-900 px-5 py-3 border-t border-slate-750 flex items-center justify-between text-xxs font-bold text-slate-400">
+
+                    <span className="flex items-center gap-1.5">
+
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+
+                      수출자 부담: {inco.costSeller.length}개
+
+                    </span>
+
+                    <span className="flex items-center gap-1.5">
+
+                      <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+
+                      수입자 부담: {inco.costBuyer.length}개
+
+                    </span>
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+
+ 
+
+            {/* Quick Tips Box */}
+
+            <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-xl">
+
+              <h3 className="text-lg font-bold text-white mb-3">📍 실무자를 위한 인코텀즈 핵심 체크리스트</h3>
+
+              <ul className="text-xs text-slate-300 leading-relaxed space-y-2.5 list-disc pl-5">
+
+                <li><strong className="text-blue-400">EXW(공장인도조건) 주의:</strong> 실무상 바이어가 수출국 수출통관을 수행하기 어려워, 수출자 대행 후 FCA로 수수하는 형태가 대다수입니다.</li>
+
+                <li><strong className="text-blue-400">항공 수입에는 FOB 대신 FCA:</strong> 항공 화물은 본선(선박) 선적 시점이 애매하므로 항공사에 전달된 시점인 FCA 조건이 계약상 분쟁 방지에 훨씬 유리합니다.</li>
+
+                <li><strong className="text-blue-400">DAP vs DDP 차이:</strong> 핵심은 <span className="text-emerald-400 font-bold">"수입국 관세 및 부가세 납부 주체"</span>입니다. DAP는 바이어가 관세를, DDP는 판매자가 세관에 직접 관세 및 부가세를 완납해야 합니다.</li>
+
+              </ul>
+
+            </div>
+
+
+ 
+
+          </div>
+
+        )}
+
+
+ 
+
+      </main>
+
+
+ 
+
+      {/* Footer */}
+
+      <footer className="bg-slate-950 border-t border-slate-850 py-4 text-center text-xxs text-slate-500">
+
+        <p>© 2026 Logistics Master Tool. All Cargo and Trucking calculations are based on uploaded actual tariff tables.</p>
+
+      </footer>
+
+    </div>
